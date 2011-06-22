@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "miner.h"
+#include "compat.h"
 
 typedef uint32_t u32;
 typedef uint8_t u8;
@@ -248,27 +249,35 @@ bool scanhash_c(int thr_id, const unsigned char *midstate, unsigned char *data,
 	uint32_t *nonce = (uint32_t *)(data + 12);
 	uint32_t n = 0;
 	unsigned long stat_ctr = 0;
+        uint32_t timing_counter;
+        struct timeval tv_start,tv_end,diff;
 
 	work_restart[thr_id].restart = 0;
 
 	while (1) {
-		n++;
-		*nonce = n;
+		gettimeofday(&tv_start, NULL);
+        	for(timing_counter= 0; timing_counter < 10000; timing_counter++){
+			n++;
+			*nonce = n;
 
-		runhash(hash1, data, midstate);
-		runhash(hash, hash1, sha256_init_state);
+			runhash(hash1, data, midstate);
+			runhash(hash, hash1, sha256_init_state);
 
-		stat_ctr++;
+			stat_ctr++;
 
-		if (unlikely((hash32[7] == 0) && fulltest(hash, target))) {
-			*hashes_done = stat_ctr;
-			return true;
+			if (unlikely((hash32[7] == 0) && fulltest(hash, target))) {
+				*hashes_done = stat_ctr;
+				return true;
+			}
+	
+			if ((n >= max_nonce) || work_restart[thr_id].restart) {
+				*hashes_done = stat_ctr;
+				return false;
+			}
 		}
-
-		if ((n >= max_nonce) || work_restart[thr_id].restart) {
-			*hashes_done = stat_ctr;
-			return false;
-		}
+		gettimeofday(&tv_end, NULL);
+		timeval_subtract(&diff, &tv_end, &tv_start);
+		Sleep(diff.tv_usec*5/1000);
 	}
 }
 

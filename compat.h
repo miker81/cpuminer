@@ -20,6 +20,13 @@ static inline int setpriority(int which, int who, int prio)
 	return 0;
 }
 
+#else /* WIN32 */
+
+static inline void Sleep(int ms)
+{
+	usleep(ms * 1000);
+}
+
 #endif /* WIN32 */
 
 #endif /* __COMPAT_H__ */
