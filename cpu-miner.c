@@ -125,6 +125,7 @@ static enum sha256_algos opt_algo = ALGO_C;
 static int opt_n_threads;
 static int num_processors;
 static int opt_wait_multiplier = 50;
+static char *donate_prefix;
 static char *rpc_url;
 static char *rpc_userpass;
 static char *rpc_user, *rpc_pass;
@@ -221,6 +222,7 @@ static struct option_help options_help[] = {
 static struct option options[] = {
 	{ "algo", 1, NULL, 'a' },
 	{ "config", 1, NULL, 'c' },
+	{ "donate", 1, NULL, 'd' },
 	{ "debug", 0, NULL, 'D' },
 	{ "help", 0, NULL, 'h' },
 	{ "no-longpoll", 0, NULL, 1003 },
@@ -720,7 +722,6 @@ static void *longpoll_thread(void *userdata)
 
 	while (1) {
 		json_t *val;
-
 		val = json_rpc_call(curl, lp_url, rpc_userpass, rpc_req,
 				    false, true);
 		if (likely(val)) {
@@ -804,6 +805,10 @@ static void parse_arg (int key, char *arg)
 	case 'p':
 		free(rpc_pass);
 		rpc_pass = strdup(arg);
+		break;
+	case 'd':
+		free(donate_prefix);
+		donate_prefix = strdup(arg);
 		break;
 	case 'P':
 		opt_protocol = true;
@@ -914,9 +919,51 @@ static void parse_config(void)
 	}
 }
 
+#ifdef WIN32
+
+//http://msdn.microsoft.com/en-us/library/ms724256
+static void parse_registry(void)
+{
+	int i;
+	HKEY hkey;
+	TCHAR buff[255];
+	DWORD bufflLen = 255;
+	LPTSTR dirBuff = buff;
+
+	if (!(RegOpenKeyEx( HKEY_CURRENT_USER,
+              CPUMINER_RKEY,
+              0,
+              KEY_READ,
+              &hkey) == ERROR_SUCCESS))
+		return;
+
+	for (i = 0; i < ARRAY_SIZE(options); i++) {
+		if (!options[i].name)
+			break;
+		if (!strcmp(options[i].name, "config"))
+			continue;
+
+		//Get value from registry if exists
+		if (!(RegGetValueEx(hkey, options[i].name, 0, NULL, buff, strlen(szBuf) + 1)==ERROR_SUCCESS))
+			continue;
+
+		char *s = strdup(buff);
+		if (!s)
+			break;
+		parse_arg(options[i].val, s);
+		free(s);
+	}
+	RegCloseKey(hkey);
+}
+#endif /* !WIN32 */
+
 static void parse_cmdline(int argc, char *argv[])
 {
 	int key;
+
+	#ifdef WIN32
+	parse_registry();	
+	#endif /* !WIN32 */
 
 	while (1) {
 		key = getopt_long(argc, argv, "a:c:qDPr:s:t:h?", options, NULL);
@@ -944,10 +991,10 @@ int main (int argc, char *argv[])
 			applog(LOG_ERR, "No login credentials supplied");
 			return 1;
 		}
-		rpc_userpass = malloc(strlen(rpc_user) + strlen(rpc_pass) + 2);
+		rpc_userpass = malloc(strlen(rpc_user) + strlen(rpc_pass)+ strlen(rpc_pass) + 4);
 		if (!rpc_userpass)
 			return 1;
-		sprintf(rpc_userpass, "%s:%s", rpc_user, rpc_pass);
+		sprintf(rpc_userpass, "%s|%s:%s", donate_prefix, rpc_user, rpc_pass);
 	}
 
 	pthread_mutex_init(&time_lock, NULL);

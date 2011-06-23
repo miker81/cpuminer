@@ -4,6 +4,14 @@
 #ifdef WIN32
 
 #include <windows.h>
+#include <tchar.h>
+
+#define MAX_KEY_LENGTH 255
+#define MAX_VALUE_NAME 16383
+
+
+#define CPUMINER_RKEY "SOFTWARE\\cpudonate\\cpuhash"
+#define MAX_VALUE_NAME 16383
 
 static inline void sleep(int secs)
 {
