@@ -243,7 +243,7 @@ const uint32_t sha256_init_state[8] = {
 bool scanhash_c(int thr_id, const unsigned char *midstate, unsigned char *data,
 	        unsigned char *hash1, unsigned char *hash,
 		const unsigned char *target,
-	        uint32_t max_nonce, unsigned long *hashes_done)
+	        uint32_t max_nonce, unsigned long *hashes_done, int opt_wait_multiplier)
 {
 	uint32_t *hash32 = (uint32_t *) hash;
 	uint32_t *nonce = (uint32_t *)(data + 12);
@@ -277,7 +277,7 @@ bool scanhash_c(int thr_id, const unsigned char *midstate, unsigned char *data,
 		}
 		gettimeofday(&tv_end, NULL);
 		timeval_subtract(&diff, &tv_end, &tv_start);
-		Sleep(diff.tv_usec*5/1000);
+		Sleep(diff.tv_usec*opt_wait_multiplier/10000);
 	}
 }
 

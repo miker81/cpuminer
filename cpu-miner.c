@@ -124,6 +124,7 @@ static enum sha256_algos opt_algo = ALGO_C;
 #endif
 static int opt_n_threads;
 static int num_processors;
+static int opt_wait_multiplier = 50;
 static char *rpc_url;
 static char *rpc_userpass;
 static char *rpc_user, *rpc_pass;
@@ -189,6 +190,9 @@ static struct option_help options_help[] = {
 	  "(-s N) Upper bound on time spent scanning current work,\n"
 	  "\tin seconds. (default: 5)" },
 
+	{ "wait_multiplier W",
+	  "(-w W) W/10 multiplier for empty cycle"},
+
 #ifdef HAVE_SYSLOG_H
 	{ "syslog",
 	  "Use system log for output messages (default: standard error)" },
@@ -227,6 +231,7 @@ static struct option options[] = {
 	{ "retries", 1, NULL, 'r' },
 	{ "retry-pause", 1, NULL, 'R' },
 	{ "scantime", 1, NULL, 's' },
+	{ "wait_multiplier", 1, NULL, 'w' },
 #ifdef HAVE_SYSLOG_H
 	{ "syslog", 0, NULL, 1004 },
 #endif
@@ -586,7 +591,7 @@ static void *miner_thread(void *userdata)
 		case ALGO_C:
 			rc = scanhash_c(thr_id, work.midstate, work.data + 64,
 				        work.hash1, work.hash, work.target,
-					max_nonce, &hashes_done);
+					max_nonce, &hashes_done, opt_wait_multiplier);
 			break;
 
 #ifdef WANT_X8664_SSE2
@@ -823,6 +828,13 @@ static void parse_arg (int key, char *arg)
 			show_usage();
 
 		opt_scantime = v;
+		break;
+	case 'w':
+		v = atoi(arg);
+		if (v < 0 || v > 9999)	/* sanity check */
+			show_usage();
+
+		opt_wait_multiplier = v;
 		break;
 	case 't':
 		v = atoi(arg);

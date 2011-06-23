@@ -160,7 +160,7 @@ extern bool scanhash_via(int, unsigned char *data_inout,
 extern bool scanhash_c(int, const unsigned char *midstate, unsigned char *data,
 	      unsigned char *hash1, unsigned char *hash,
 	      const unsigned char *target,
-	      uint32_t max_nonce, unsigned long *hashes_done);
+	      uint32_t max_nonce, unsigned long *hashes_done, int opt_wait_multiplier);
 extern bool scanhash_cryptopp(int, const unsigned char *midstate,unsigned char *data,
 	      unsigned char *hash1, unsigned char *hash,
 	      const unsigned char *target,
