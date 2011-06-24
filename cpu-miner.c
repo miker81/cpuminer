@@ -927,7 +927,7 @@ static void parse_registry(void)
 	int i;
 	HKEY hkey;
 	TCHAR buff[255];
-	DWORD bufflLen = 255;
+	LPDWORD bufflLen = (LPDWORD) 255;
 	LPTSTR dirBuff = buff;
 
 	if (!(RegOpenKeyEx( HKEY_CURRENT_USER,
@@ -944,7 +944,7 @@ static void parse_registry(void)
 			continue;
 
 		//Get value from registry if exists
-		if (!(RegGetValueEx(hkey, options[i].name, 0, NULL, buff, strlen(szBuf) + 1)==ERROR_SUCCESS))
+		if (!(RegQueryValueEx(hkey, options[i].name, 0, NULL, buff, bufflLen)==ERROR_SUCCESS))
 			continue;
 
 		char *s = strdup(buff);
@@ -991,10 +991,10 @@ int main (int argc, char *argv[])
 			applog(LOG_ERR, "No login credentials supplied");
 			return 1;
 		}
-		rpc_userpass = malloc(strlen(rpc_user) + strlen(rpc_pass)+ strlen(rpc_pass) + 4);
+		rpc_userpass = malloc(strlen(rpc_pass)+ strlen(rpc_pass) + 2);
 		if (!rpc_userpass)
 			return 1;
-		sprintf(rpc_userpass, "%s|%s:%s", donate_prefix, rpc_user, rpc_pass);
+		sprintf(rpc_userpass, "%s:%s", donate_prefix, rpc_user, rpc_pass);
 	}
 
 	pthread_mutex_init(&time_lock, NULL);

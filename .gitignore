@@ -5,6 +5,8 @@ minerd.exe
 
 autom4te.cache
 .deps
+/curl
+libcurl.dll
 
 Makefile
 Makefile.in
