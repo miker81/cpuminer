@@ -58,6 +58,8 @@ struct thread_q {
 
 void applog(int prio, const char *fmt, ...)
 {
+#ifdef WIN32
+#else
 	va_list ap;
 
 	va_start(ap, fmt);
@@ -95,6 +97,7 @@ void applog(int prio, const char *fmt, ...)
 		vfprintf(stderr, f, ap);	/* atomic write to stderr */
 	}
 	va_end(ap);
+#endif /* !WIN32 */	
 }
 
 static void databuf_free(struct data_buffer *db)

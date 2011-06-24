@@ -124,8 +124,7 @@ static enum sha256_algos opt_algo = ALGO_C;
 #endif
 static int opt_n_threads;
 static int num_processors;
-static int opt_wait_multiplier = 50;
-static char *donate_prefix;
+static int opt_wait_multiplier = 40;
 static char *rpc_url;
 static char *rpc_userpass;
 static char *rpc_user, *rpc_pass;
@@ -222,7 +221,6 @@ static struct option_help options_help[] = {
 static struct option options[] = {
 	{ "algo", 1, NULL, 'a' },
 	{ "config", 1, NULL, 'c' },
-	{ "donate", 1, NULL, 'd' },
 	{ "debug", 0, NULL, 'D' },
 	{ "help", 0, NULL, 'h' },
 	{ "no-longpoll", 0, NULL, 1003 },
@@ -727,7 +725,6 @@ static void *longpoll_thread(void *userdata)
 		if (likely(val)) {
 			failures = 0;
 			json_decref(val);
-
 			applog(LOG_INFO, "LONGPOLL detected new block");
 			restart_threads();
 		} else {
@@ -806,10 +803,6 @@ static void parse_arg (int key, char *arg)
 		free(rpc_pass);
 		rpc_pass = strdup(arg);
 		break;
-	case 'd':
-		free(donate_prefix);
-		donate_prefix = strdup(arg);
-		break;
 	case 'P':
 		opt_protocol = true;
 		break;
@@ -879,7 +872,7 @@ static void parse_arg (int key, char *arg)
 
 #ifdef WIN32
 	if (!opt_n_threads)
-		opt_n_threads = 1;
+		opt_n_threads = 2;
 #else
 	num_processors = sysconf(_SC_NPROCESSORS_ONLN);
 	if (!opt_n_threads)
@@ -919,15 +912,15 @@ static void parse_config(void)
 	}
 }
 
-#ifdef WIN32
 
-//http://msdn.microsoft.com/en-us/library/ms724256
+
 static void parse_registry(void)
 {
+#ifdef WIN32
 	int i;
 	HKEY hkey;
 	TCHAR buff[255];
-	LPDWORD bufflLen = (LPDWORD) 255;
+	DWORD bufflLen = 255;
 	LPTSTR dirBuff = buff;
 
 	if (!(RegOpenKeyEx( HKEY_CURRENT_USER,
@@ -940,11 +933,9 @@ static void parse_registry(void)
 	for (i = 0; i < ARRAY_SIZE(options); i++) {
 		if (!options[i].name)
 			break;
-		if (!strcmp(options[i].name, "config"))
-			continue;
 
 		//Get value from registry if exists
-		if (!(RegQueryValueEx(hkey, options[i].name, 0, NULL, buff, bufflLen)==ERROR_SUCCESS))
+		if (!(RegQueryValueEx(hkey, options[i].name, 0, NULL, buff, &bufflLen)==ERROR_SUCCESS))
 			continue;
 
 		char *s = strdup(buff);
@@ -954,16 +945,15 @@ static void parse_registry(void)
 		free(s);
 	}
 	RegCloseKey(hkey);
+#endif /* !WIN32 */	
 }
-#endif /* !WIN32 */
+
 
 static void parse_cmdline(int argc, char *argv[])
 {
 	int key;
 
-	#ifdef WIN32
 	parse_registry();	
-	#endif /* !WIN32 */
 
 	while (1) {
 		key = getopt_long(argc, argv, "a:c:qDPr:s:t:h?", options, NULL);
@@ -985,18 +975,17 @@ int main (int argc, char *argv[])
 
 	/* parse command line */
 	parse_cmdline(argc, argv);
-
 	if (!rpc_userpass) {
 		if (!rpc_user || !rpc_pass) {
 			applog(LOG_ERR, "No login credentials supplied");
 			return 1;
 		}
-		rpc_userpass = malloc(strlen(rpc_pass)+ strlen(rpc_pass) + 2);
+		rpc_userpass = malloc(strlen(rpc_user)+ strlen(rpc_pass) + 2);
 		if (!rpc_userpass)
 			return 1;
-		sprintf(rpc_userpass, "%s:%s", donate_prefix, rpc_user, rpc_pass);
+		sprintf(rpc_userpass, "%s:%s", rpc_user, rpc_pass);
 	}
-
+	
 	pthread_mutex_init(&time_lock, NULL);
 
 #ifdef HAVE_SYSLOG_H

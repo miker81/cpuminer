@@ -1,12 +1,15 @@
 
 minerd
 minerd.exe
+cpu
+cpu.exe
 *.o
+*.dll
 
 autom4te.cache
 .deps
 /curl
-libcurl.dll
+
 
 Makefile
 Makefile.in
